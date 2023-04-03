@@ -20,7 +20,7 @@ under target you will see the `crac-demo-1.0.0-SNAPSHOT-shaded.jar` ubber jar.
 docker run --network "host" -it --privileged --rm --name=my-crac-app -v $(pwd)/target:/opt/mnt tzolov/java_17_crac:latest /bin/bash
 ```
 
-The `java_17_crac` uses Ububu22.04 and pre-installs JDK 17 CRaC + 5.
+The `java_17_crac` uses `Ubuntu-22.04` and pre-installs `JDK 17 CRaC + 5`. Here is the [Dockerfile](https://github.com/tzolov/crac-demo/blob/main/src/main/resources/Dockerfile).
 
 - Start the crac-demo application inside the running container:
 
