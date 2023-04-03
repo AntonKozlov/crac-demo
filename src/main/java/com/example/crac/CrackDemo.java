@@ -33,7 +33,7 @@ public class CrackDemo {
         ProcessorContext processorContext = new ProcessorContext();
         Processor processor = new Processor(processorContext);
 
-        Core.getGlobalContext().register(new CRaCResource(processorContext));
+        Core.getGlobalContext().register(new ProcessorContextResource(processorContext));
 
         processorContext.startContext();
 
@@ -97,11 +97,11 @@ public class CrackDemo {
     /**
      * CRaC Resource that gracefully stops the context on checkpoint and restores it on checkpoint restart.
      */
-    public static class CRaCResource implements Resource {
+    public static class ProcessorContextResource implements Resource {
 
         private ProcessorContext context;
 
-        public CRaCResource(ProcessorContext context) {
+        public ProcessorContextResource(ProcessorContext context) {
             this.context = context;
         }
 
