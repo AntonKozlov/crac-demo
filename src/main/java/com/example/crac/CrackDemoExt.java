@@ -22,20 +22,21 @@ import org.crac.Context;
 import org.crac.Core;
 import org.crac.Resource;
 
-public class CrackDemo {
+public class CrackDemoExt {
 
-    private static final Logger logger = LogManager.getLogger(CrackDemo.class);
+    private static final Logger logger = LogManager.getLogger(CrackDemoExt.class);
 
     public static void main(String[] args) {
 
         logger.info("CRaC Demo of a processor with dependant context");
 
-        ProcessorContext processorContext = new ProcessorContext();
-        Processor processor = new Processor(processorContext);
+        ProcessorState processorState = new ProcessorState();
+        ProcessorContext processorContext = new ProcessorContext(processorState);
+        Processor processor = new Processor(processorState);
 
         Core.getGlobalContext().register(new ProcessorContextResource(processorContext));
 
-        processorContext.startContext();
+        processorContext.start();
 
         // Use the processor in the [main] thread to print sequential numbers.
         for (int i = 0; i < 100; i++) {
@@ -45,53 +46,77 @@ public class CrackDemo {
     }
 
     /**
-     * Processor depends on an initialized {@link #CrackDemo(ProcessorContext)}.
+     * Processor depends on an initialized {@link #CrackDemoExt(ProcessorState)}.
      */
     public static class Processor {
 
-        private ProcessorContext context;
+        private ProcessorState state;
 
-        public Processor(ProcessorContext context) {
-            this.context = context;
+        public Processor(ProcessorState state) {
+            this.state = state;
         }
 
         /**
-         * Process next processor item. An initialized {@link #CrackDemo(ProcessorContext)} is required.
+         * Process next processor item.
          */
         public void next(int i) {
-            sleep(6000);
-            if (!this.context.isRunning()) {
-                logger.error("ProcessorContext not initialized yet! [i =" + i + "]");
-                throw new RuntimeException("ProcessorContext not initialized yet!");
-            }
-
+            this.state.useState();
             System.out.print(i + ":");
         }
     }
 
     /**
-     * Processor's context. Must be initialized before the processor can be used.
+     * Sate used by the {@link #CrackDemoExt(Processor)}.
+     */
+    public static class ProcessorState {
+
+        private boolean isStateReady = false;
+
+        public void useState() {
+            if (!this.isStateReady) {
+                logger.error("ProcessorState is not initialized yet!");
+                throw new RuntimeException("ProcessorState is not initialized yet!");
+            }
+        }
+
+        public void initialize() {
+            this.isStateReady = true;
+        }
+
+        public void shutdown() {
+            this.isStateReady = false;
+        }
+    }
+
+    /**
+     * Processor's State context manager. Responsible to initialize the {@link #CrackDemoExt(ProcessorState)} before the
+     * {@link #CrackDemo(Processor)} can use it. The context also can pause/stop and (re)start the context. The
+     * processor state is initialized only after the start() method complete.
      */
     public static class ProcessorContext {
 
-        private boolean isInitialized = false;
+        private final ProcessorState processorState;
 
-        public void startContext() {
+        public ProcessorContext(ProcessorState processorState) {
+            this.processorState = processorState;
+        }
+
+        public void start() {
             // Emulates context start delay. Note that the start delay is
             // longer than the processing loop iterations.
             sleep(3000);
-            this.isInitialized = true;
+
+            this.processorState.initialize();
+
             logger.info("ProcessorContext STARTED!");
         }
 
-        public void stopContext() {
+        public void stop() {
             sleep(3000); // emulates context stop delay.
-            this.isInitialized = false;
-            logger.info("ProcessorContext STOPPED!");
-        }
 
-        public boolean isRunning() {
-            return this.isInitialized;
+            this.processorState.shutdown();
+
+            logger.info("ProcessorContext STOPPED!");
         }
     }
 
@@ -109,13 +134,13 @@ public class CrackDemo {
         @Override
         public void beforeCheckpoint(Context<? extends Resource> context) throws Exception {
             logger.info("call 'beforeCheckpoint' \n");
-            this.context.stopContext();
+            this.context.stop();
         }
 
         @Override
         public void afterRestore(Context<? extends Resource> context) throws Exception {
             logger.info("call 'afterRestore' \n");
-            this.context.startContext();
+            this.context.start();
         }
     }
 

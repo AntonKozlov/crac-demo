@@ -61,7 +61,7 @@
               <shadedArtifactAttached>true</shadedArtifactAttached>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>com.example.crac.CrackDemo</mainClass>
+                  <mainClass>com.example.crac.CrackDemoExt</mainClass>
                 </transformer>
               </transformers>
             </configuration>

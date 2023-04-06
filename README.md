@@ -11,7 +11,7 @@ git clone git@github.com:tzolov/crac-demo.git
 mvn clean install
 ```
 
-under target you will see the `crac-demo-1.0.0-SNAPSHOT-shaded.jar` ubber jar.
+under target you will see the `crac-demo-1.0.0-SNAPSHOT-shaded.jar` uber jar.
 
 
 - From within the `crac-demo` folder run the `java_17_crac` container:
@@ -42,4 +42,3 @@ later creates the checkpoint under the container's `/opt/crac-files` folder and 
 ```
 java -XX:CRaCRestoreFrom=/opt/crac-files
 ```
-
