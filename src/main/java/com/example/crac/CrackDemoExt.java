@@ -34,8 +34,6 @@ public class CrackDemoExt {
         ProcessorContext processorContext = new ProcessorContext(processorState);
         Processor processor = new Processor(processorState);
 
-        Core.getGlobalContext().register(new ProcessorContextResource(processorContext));
-
         processorContext.start();
 
         // Use the processor in the [main] thread to print sequential numbers.
@@ -93,12 +91,13 @@ public class CrackDemoExt {
      * {@link #CrackDemo(Processor)} can use it. The context also can pause/stop and (re)start the context. The
      * processor state is initialized only after the start() method complete.
      */
-    public static class ProcessorContext {
+    public static class ProcessorContext implements Resource {
 
         private final ProcessorState processorState;
 
         public ProcessorContext(ProcessorState processorState) {
             this.processorState = processorState;
+            Core.getGlobalContext().register(this);
         }
 
         public void start() {
@@ -118,29 +117,17 @@ public class CrackDemoExt {
 
             logger.info("ProcessorContext STOPPED!");
         }
-    }
-
-    /**
-     * CRaC Resource that gracefully stops the context on checkpoint and restores it on checkpoint restart.
-     */
-    public static class ProcessorContextResource implements Resource {
-
-        private ProcessorContext context;
-
-        public ProcessorContextResource(ProcessorContext context) {
-            this.context = context;
-        }
 
         @Override
         public void beforeCheckpoint(Context<? extends Resource> context) throws Exception {
             logger.info("call 'beforeCheckpoint' \n");
-            this.context.stop();
+            stop();
         }
 
         @Override
         public void afterRestore(Context<? extends Resource> context) throws Exception {
             logger.info("call 'afterRestore' \n");
-            this.context.start();
+            start();
         }
     }
 
