@@ -22,6 +22,8 @@ import org.crac.Context;
 import org.crac.Core;
 import org.crac.Resource;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -30,7 +32,7 @@ public class CrackDemoExt {
 
     private static final Logger logger = LogManager.getLogger(CrackDemoExt.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws InterruptedException {
 
         logger.info("CRaC Demo of a processor with dependant context");
 
@@ -43,6 +45,7 @@ public class CrackDemoExt {
         // Use the processor in the [main] thread to print sequential numbers.
         for (int i = 0; i < 100; i++) {
             sleep(1000); // wait before next processing item.
+            processorContext.sync();
             processor.next(i);
         }
     }
@@ -72,19 +75,12 @@ public class CrackDemoExt {
      */
     public static class ProcessorState {
 
-        ReadWriteLock lock = new ReentrantReadWriteLock();
-
         private boolean isStateReady = false;
 
         public void useState() {
-            lock.readLock().lock();
-            try {
-                if (!this.isStateReady) {
-                    logger.error("ProcessorState is not initialized yet!");
-                    throw new RuntimeException("ProcessorState is not initialized yet!");
-                }
-            } finally {
-                lock.readLock().unlock();
+            if (!this.isStateReady) {
+                logger.error("ProcessorState is not initialized yet!");
+                throw new RuntimeException("ProcessorState is not initialized yet!");
             }
         }
 
@@ -94,14 +90,6 @@ public class CrackDemoExt {
 
         public void shutdown() {
             this.isStateReady = false;
-        }
-
-        void beforeCheckpoint() {
-            lock.writeLock().lock();
-        }
-
-        void afterRestore() {
-            lock.writeLock().unlock();
         }
     }
 
@@ -137,10 +125,12 @@ public class CrackDemoExt {
             logger.info("ProcessorContext STOPPED!");
         }
 
+        ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
+
         @Override
         public void beforeCheckpoint(Context<? extends Resource> context) throws Exception {
             logger.info("call 'beforeCheckpoint' \n");
-            this.processorState.beforeCheckpoint();
+            readWriteLock.writeLock().lock();
             stop();
         }
 
@@ -148,7 +138,12 @@ public class CrackDemoExt {
         public void afterRestore(Context<? extends Resource> context) throws Exception {
             logger.info("call 'afterRestore' \n");
             start();
-            this.processorState.afterRestore();
+            readWriteLock.writeLock().unlock();
+        }
+
+        void sync() throws InterruptedException {
+            readWriteLock.readLock().lock();
+            readWriteLock.readLock().unlock();
         }
     }
 
