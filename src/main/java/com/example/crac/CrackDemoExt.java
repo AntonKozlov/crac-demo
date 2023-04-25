@@ -22,6 +22,10 @@ import org.crac.Context;
 import org.crac.Core;
 import org.crac.Resource;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+
 public class CrackDemoExt {
 
     private static final Logger logger = LogManager.getLogger(CrackDemoExt.class);
@@ -68,12 +72,19 @@ public class CrackDemoExt {
      */
     public static class ProcessorState {
 
+        ReadWriteLock lock = new ReentrantReadWriteLock();
+
         private boolean isStateReady = false;
 
         public void useState() {
-            if (!this.isStateReady) {
-                logger.error("ProcessorState is not initialized yet!");
-                throw new RuntimeException("ProcessorState is not initialized yet!");
+            lock.readLock().lock();
+            try {
+                if (!this.isStateReady) {
+                    logger.error("ProcessorState is not initialized yet!");
+                    throw new RuntimeException("ProcessorState is not initialized yet!");
+                }
+            } finally {
+                lock.readLock().unlock();
             }
         }
 
@@ -83,6 +94,14 @@ public class CrackDemoExt {
 
         public void shutdown() {
             this.isStateReady = false;
+        }
+
+        void beforeCheckpoint() {
+            lock.writeLock().lock();
+        }
+
+        void afterRestore() {
+            lock.writeLock().unlock();
         }
     }
 
@@ -121,6 +140,7 @@ public class CrackDemoExt {
         @Override
         public void beforeCheckpoint(Context<? extends Resource> context) throws Exception {
             logger.info("call 'beforeCheckpoint' \n");
+            this.processorState.beforeCheckpoint();
             stop();
         }
 
@@ -128,6 +148,7 @@ public class CrackDemoExt {
         public void afterRestore(Context<? extends Resource> context) throws Exception {
             logger.info("call 'afterRestore' \n");
             start();
+            this.processorState.afterRestore();
         }
     }
 
