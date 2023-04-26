@@ -101,10 +101,12 @@ public class CrackDemoExt {
     public static class ProcessorContext implements Resource {
 
         private final ProcessorState processorState;
+        private final ReadWriteLock readWriteLock = new ReentrantReadWriteLock(true);
 
         public ProcessorContext(ProcessorState processorState) {
             this.processorState = processorState;
             Core.getGlobalContext().register(this);
+            readWriteLock.readLock().lock();
         }
 
         public void start() {
@@ -124,9 +126,6 @@ public class CrackDemoExt {
 
             logger.info("ProcessorContext STOPPED!");
         }
-
-        ReadWriteLock readWriteLock = new ReentrantReadWriteLock();
-
         @Override
         public void beforeCheckpoint(Context<? extends Resource> context) throws Exception {
             logger.info("call 'beforeCheckpoint' \n");
@@ -142,8 +141,9 @@ public class CrackDemoExt {
         }
 
         void sync() throws InterruptedException {
-            readWriteLock.readLock().lock();
             readWriteLock.readLock().unlock();
+            // the only point where checkpoint can happen
+            readWriteLock.readLock().lock();
         }
     }
 
